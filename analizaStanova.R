@@ -6,9 +6,10 @@
 #' 
 cat("\f"); graphics.off(); rm(list = ls())
 setwd("~/Documents/remax-house-pricing")
-df = read.csv("houses_full.csv", sep = ",", header = TRUE)
+options(digits=7)
+library("gvlma")
+df = read.csv("houses_full.csv", sep = ",", header = TRUE, dec=",")
 summary(df)
-#pairs(df)
 #unique( df$Vrsta.nekretnine.)
 df <- df[df$Vrsta.nekretnine. =="Stan/Apartman",]
 df$Vrt. <- NULL
@@ -54,9 +55,43 @@ df$P.P..sa.izlogom. <- NULL
 df$Pristup.kamionima.šleperima. <- NULL
 df$Ključ.u.agenciji. <- NULL
 df$Struja. <- NULL
+df$Ukupno.katova. <- NULL
+df$Parking. <- NULL
+df$Parking..broj.. <- NULL
+df$Garaža. <- NULL
+df$Udaljenost.od.mora. <- NULL
+df$Površina.balkona.lođe.terase. <- NULL
+df$Vrsta.nekretnine. <- NULL
 
-df$Površina_numeric <- as.numeric(df$Površina.)
+df$Površina_numeric <- as.double(gsub(",",".", df$Površina.))
+df$Godina.izgradnje.[df$Godina.izgradnje. == ""] <- NA
+df$Cijena. <- as.numeric(gsub("€.*","",df$Cijena.))
+as.numeric(df$Cijena.)
+df$Cijena.[df$Cijena. < 20.000] <- NA
+df <- na.omit(df)
+df$Površina. <- NULL
+df$godinaIzgradnje <- as.numeric(gsub("god.", "", df$Godina.izgradnje.))
+df$Godina.izgradnje. <- NULL
+df <- na.omit(df)
+#df$X <- NULL
+#df$Lokacija. <- NULL
+summary(df)
 
 
+write.csv(df, file = "cleanData.csv")
+pairs(df)
 
-#write.csv(df, file = "cleanData.csv")
+df_training <- df[1:280, ] #podajeli dataset u dva za trening i test
+df_test <- df[281:nrow(df),]
+
+model1 <- lm(Cijena.~Spavaće.sobe. +  + Površina_numeric , data = df_training)
+summary(model1)
+gvlma(model1)
+
+model2 <- lm(Cijena.~., data = df_training)
+summary(model2)
+gvlma(model2)
+
+model3 <- lm(Cijena.~Površina_numeric , data = df_training)
+summary(model3)
+gvlma(model3)
