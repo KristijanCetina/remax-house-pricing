@@ -1,2 +1,2 @@
 # Model predviđanja cijena nekretnina
-every repositore wants to have readme.md. So here it is
+every repository wants to have readme.md. So here it is
