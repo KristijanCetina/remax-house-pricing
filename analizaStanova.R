@@ -77,7 +77,6 @@ df <- na.omit(df)
 #df$Lokacija. <- NULL
 summary(df)
 
-
 write.csv(df, file = "cleanData.csv")
 pairs(df)
 
@@ -95,3 +94,6 @@ gvlma(model2)
 model3 <- lm(Cijena.~Površina_numeric , data = df_training)
 summary(model3)
 gvlma(model3)
+
+#ToDo:
+# set seed + random data kod podjele seta podataka.
