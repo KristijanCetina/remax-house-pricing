@@ -4,12 +4,15 @@
 #' date: "`r format(Sys.time(), '%e.%m.%Y.')`"
 #' ---
 #' 
-cat("\f"); graphics.off(); rm(list = ls())
+
+#cat("\f"); graphics.off(); rm(list = ls())
 setwd("~/Documents/remax-house-pricing")
-options(digits=7)
+options(digits=3)
+options(scipen=5)
 library("gvlma")
 df = read.csv("houses_full.csv", sep = ",", header = TRUE, dec=",")
 summary(df)
+str(df)
 #unique( df$Vrsta.nekretnine.)
 df <- df[df$Vrsta.nekretnine. =="Stan/Apartman",]
 df$Vrt. <- NULL
@@ -63,37 +66,103 @@ df$Udaljenost.od.mora. <- NULL
 df$Površina.balkona.lođe.terase. <- NULL
 df$Vrsta.nekretnine. <- NULL
 
-df$Površina_numeric <- as.double(gsub(",",".", df$Površina.))
+df$Površina. <- as.double(gsub(",",".", df$Površina.))
 df$Godina.izgradnje.[df$Godina.izgradnje. == ""] <- NA
-df$Cijena. <- as.numeric(gsub("€.*","",df$Cijena.))
-as.numeric(df$Cijena.)
-df$Cijena.[df$Cijena. < 20.000] <- NA
+df$Cijena. <- readr::parse_number(as.character(df$Cijena.) ,locale = readr::locale(decimal_mark = ","))
+df$Godina.izgradnje. <- readr::parse_number(as.character(df$Godina.izgradnje.) ,locale = readr::locale(decimal_mark = ","))
+df <- df[!is.na(df$Cijena.),]
+
+boxplot(df$Godina.izgradnje.)
+boxplot(df$Ukupan.broj.soba.)
+h0 <- hist(df$Ukupan.broj.soba., breaks = 6,
+     labels = T,
+     main = "Distribucija broja soba",
+     xlab = "Broj soba",
+     ylab = "Broj objekata"
+)
+
+df <- df[!df$Ukupan.broj.soba. > 6,]
+df <- df[!df$Cijena. < 20000,]
 df <- na.omit(df)
-df$Površina. <- NULL
-df$godinaIzgradnje <- as.numeric(gsub("god.", "", df$Godina.izgradnje.))
-df$Godina.izgradnje. <- NULL
-df <- na.omit(df)
-#df$X <- NULL
-#df$Lokacija. <- NULL
+df <- df[!df$Godina.izgradnje. < 1900,]
+boxplot(df$Ukupan.broj.soba.)
+boxplot(df$Godina.izgradnje.)
+h1 <- hist(df$Godina.izgradnje.,
+          labels = T,
+          main = "Distribucija broja soba",
+          xlab = "Broj soba",
+          ylab = "Broj objekata"
+)
+
 summary(df)
 
 write.csv(df, file = "cleanData.csv")
 pairs(df)
+set.seed(666999)
+idx <- sample(nrow(df), 0.7*nrow(df)) #70-30
+trening <- df[idx,]
+test <- df [-idx,]
 
-df_training <- df[1:280, ] #podajeli dataset u dva za trening i test
-df_test <- df[281:nrow(df),]
-
-model1 <- lm(Cijena.~Spavaće.sobe. +  + Površina_numeric , data = df_training)
+model1 <- lm(Cijena.~Spavaće.sobe. +  + Površina. , data = trening)
 summary(model1)
 gvlma(model1)
 
-model2 <- lm(Cijena.~., data = df_training)
+model2 <- lm(Cijena.~ Lokacija. + Površina., data = trening)
 summary(model2)
 gvlma(model2)
 
-model3 <- lm(Cijena.~Površina_numeric , data = df_training)
+model3 <- lm(Cijena.~Površina. , data = trening)
 summary(model3)
 gvlma(model3)
 
-#ToDo:
-# set seed + random data kod podjele seta podataka.
+pred1 <- predict(model1, newdata = test)
+#pred2 <- predict(model2, newdata = test)
+pred3 <- predict(model3, newdata = test)
+
+par(mfrow = c(2,2)) # 2x2 plot
+plot(model1)
+plot(model3)
+par(mfrow=c(1,1))
+
+t1 <- test$Cijena. - pred1
+barplot(t1,
+     main = "Predvidene cijene - model 1",
+     xlab = "index nekretnine",
+     ylab = "Razlika procijene")
+
+h_t1 <- hist(t1,breaks = 10,
+           labels = T,
+           main = "Distribucije procijene cijena model_1",
+           xlab = "Razlika cijene",
+           ylab = "Broj objekata"
+)
+xfit<-seq(min(t1),max(t1),length=40)
+yfit<-dnorm(xfit,mean=mean(t1),sd=sd(t1))
+yfit <- yfit*diff(h_t1$mids[1:2])*length(t1)
+lines(xfit, yfit, col="blue", lwd=2)
+
+t3 <- test$Cijena. - pred3
+barplot(t3,
+        main = "Predvidene cijene - model 3",
+        xlab = "index nekretnine",
+        ylab = "Razlika procijene")
+
+h_t3 <- hist(t3,breaks = 10,
+             labels = T,
+             main = "Distribucije procijene cijena- model 3
+             ",
+             xlab = "Razlika cijene",
+             ylab = "Broj objekata"
+)
+xfit<-seq(min(t3),max(t3),length=40)
+yfit<-dnorm(xfit,mean=mean(t3),sd=sd(t3))
+yfit <- yfit*diff(h_t3$mids[1:2])*length(t3)
+lines(xfit, yfit, col="blue", lwd=2)
+
+
+#' \title{Zaključak i diskusija}
+#' Korišteni model ne može dobro predvidjeti cijene nekretnina iz zadanog dataseta.
+#' Trebalo bi rješiti poznati problem utjecaja lokacije na cijenu nekretnine.
+#' Nadalje, vidi se da model ipak podjednako precijeni kao i podcijeni nekretnine iz testnog skupa podataka s blagim repom prema podcijenjenim
+#' 
+#'
