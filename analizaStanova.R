@@ -5,15 +5,18 @@
 #' ---
 #' 
 
-#cat("\f"); graphics.off(); rm(list = ls())
+cat("\f"); graphics.off(); rm(list = ls())
 setwd("~/Documents/remax-house-pricing")
 options(digits=3)
 options(scipen=5)
 library("gvlma")
+library("corrgram")
+
 df = read.csv("houses_full.csv", sep = ",", header = TRUE, dec=",")
 summary(df)
 str(df)
-#unique( df$Vrsta.nekretnine.)
+unique( df$Vrsta.nekretnine.)
+
 df <- df[df$Vrsta.nekretnine. =="Stan/Apartman",]
 df$Vrt. <- NULL
 df$Struja.zakupljena.snaga. <- NULL
@@ -102,6 +105,10 @@ set.seed(666999)
 idx <- sample(nrow(df), 0.7*nrow(df)) #70-30
 trening <- df[idx,]
 test <- df [-idx,]
+
+corrgram(trening, order=TRUE, lower.panel=panel.shade,
+         upper.panel=panel.pie, text.panel=panel.txt)
+cor.test(trening$Cijena., trening$Površina.)
 
 model1 <- lm(Cijena.~Spavaće.sobe. +  + Površina. , data = trening)
 summary(model1)
