@@ -12,10 +12,13 @@ options(scipen=5)
 library("gvlma")
 library("corrgram")
 
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+
 df = read.csv("houses_full.csv", sep = ",", header = TRUE, dec=",")
 summary(df)
 str(df)
 unique( df$Vrsta.nekretnine.)
+
 
 df <- df[df$Vrsta.nekretnine. =="Stan/Apartman",]
 df$Vrt. <- NULL
@@ -173,3 +176,39 @@ lines(xfit, yfit, col="blue", lwd=2)
 #' Nadalje, vidi se da model ipak podjednako precijeni kao i podcijeni nekretnine iz testnog skupa podataka s blagim repom prema podcijenjenim
 #' 
 #'
+
+str(df)
+
+levels(df$Lokacija.)
+df$lokacija.num <- df$Lokacija.
+levels(df$lokacija.num) <- c(1:348)
+df$lokacija.num <- as.numeric.factor(df$lokacija.num)
+uniqueLocations <- unique(df$lokacija.num)
+
+#ponovno podjeliti podatke na trening i test - pregaziti
+set.seed(666999)
+idx <- sample(nrow(df), 0.7*nrow(df)) #70-30
+trening <- df[idx,]
+test <- df [-idx,]
+
+model4 <- lm(Cijena.~lokacija.num  + Površina. , data = trening)
+summary(model4)
+gvlma(model4) # i dalje nije neka sreca. Cini mi se da ima premalo primjeraka iz svake kategorije.
+pred4 <- predict(model4, newdata = test)
+
+t4 <- test$Cijena. - pred4
+barplot(t1,
+        main = "Predvidene cijene - model 4",
+        xlab = "index nekretnine",
+        ylab = "Razlika procijene")
+
+h_t4 <- hist(t1,breaks = 10,
+             labels = T,
+             main = "Distribucije procijene cijena model_4",
+             xlab = "Razlika cijene",
+             ylab = "Broj objekata"
+)
+xfit<-seq(min(t4),max(t4),length=40)
+yfit<-dnorm(xfit,mean=mean(t4),sd=sd(t4))
+yfit <- yfit*diff(h_t1$mids[1:2])*length(t1)
+lines(xfit, yfit, col="blue", lwd=2)
